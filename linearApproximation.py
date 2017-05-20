@@ -13,13 +13,85 @@ import matplotlib.pyplot as plt
 
 from sklearn import linear_model
 
+# NOTE algorithm does not learn. I think because there are not enough features for the linear model to have the power to capture our Q function.
 
-# so we need to keep an array of samples and then train our classifier on those samples every once and a while
 
+# linear approximated q learning
+# will update the qfunction with values once in a given number of examples
 class ApproxQ:
     def __init__(self):
-        self.inputData = {}
-        self.desiredOutputs = {}
+        # training data
+        self.inputData = []
+        self.desiredOutputs = []
+
+        # model update delay
+        self.modelUpdateTime = 1 # update the model every sample for now
+        self.numSamples = 0
+
+        # model
+        self.model = linear_model.LinearRegression()
+
+        x = np.zeros((2, 1), dtype=np.int32)
+        y = np.zeros((1, 1), dtype=np.int32)
+
+        y = y.reshape(-1, 1)
+        x = x.reshape(-1, 2)
+
+        self.model.fit(x, y)
+
+
+    def setQ(self, state, action, value):
+        # add state and action information to our model
+        self.inputData.append((state, action))
+        self.desiredOutputs.append(value)
+
+        # check if we need to update the approximation
+        if self.numSamples % self.modelUpdateTime == 0:
+            # update the model
+            x = np.array(self.inputData)
+            y = np.array(self.desiredOutputs)
+
+            x = x.reshape(-1, 2)
+            y = y.reshape(-1, 1)
+
+            self.model.fit(x, y)
+
+    def updateQ(self, state, action, reward, rState, alpha, gamma, actionSpace):
+        _, maxQValue = self.getArgmax(state, actionSpace)
+
+        currentQ = self.getQ(state, action)
+        newInfo = reward + gamma * maxQValue
+
+        newQValue = (1-alpha)*currentQ + alpha * newInfo
+        self.setQ(state, action, newQValue)
+
+
+    def getQ(self, state, action):
+        # get the model to spit out which action we want
+        x = np.array([state, action])
+        x = x.reshape(1, -1)
+
+        prediction = self.model.predict(x)
+        return prediction
+
+    # get the max value action in a given state
+    # only works with descrete actions!
+    def getArgmax(self, state, actionSpace):
+
+        # default is random action if there is nothing better
+        best = -1
+        bestAction = actionSpace.sample()
+
+        # find the argmax
+        for action in range(actionSpace.n):
+            value = self.getQ(state, action)
+
+            if value > best:
+                best = value
+                bestAction = action
+
+        return bestAction, best
+
 
 
 class QLearning:
@@ -28,41 +100,27 @@ class QLearning:
         self.env = gym.make('Taxi-v2')
         #self.env = gym.make('FrozenLake-v0')
 
-        self.Q = np.tile(1/float(self.env.action_space.n), (self.env.observation_space.n, self.env.action_space.n))
+        self.Q = ApproxQ()
         self.epsilon = 0.1
         self.alpha = 1.0
         self.gamma = 0.9
 
-        self.displayTime = 0
-        self.numTimesteps = 0
+        self.episodes = 0
         return
 
     def reinitialize(self):
-        self.Q = np.tile(1/float(self.env.action_space.n), (self.env.observation_space.n, self.env.action_space.n))
+        self.Q = ApproxQ()
         return
 
     def train(self, numEpisodes):
         for i in range(numEpisodes):
             self.runEpisode
 
-    def runEpisode(self, maxSteps=100, training=False):
+    def runEpisode(self, maxSteps=100, training=False, display=False):
         total_reward = 0
         state = self.env.reset()
 
         for i in range(maxSteps):
-            # display or do not display the environment
-            if self.displayTime > 0:
-                self.displayTime -= 1
-                print('\n\n\n\n')
-                print('timesteps: ', self.numTimesteps)
-                self.env.render()
-                time.sleep(0.25)
-
-            if self.numTimesteps % 20000 == 0:
-                self.displayTime = 20
-
-            self.numTimesteps += 1
-
             # perform alpha decay
             self.alpha = self.alpha / 1.00001
 
@@ -73,10 +131,20 @@ class QLearning:
             else:
                 action = self.eGreedy(state)
 
+            # display the environment
+            if display == True:
+                print(chr(27) + "[2J]")
+                print("episodes: " + str(self.episodes) + "\n")
+                print("learning rate: " + str(self.alpha) + "\n")
+                qValue = self.Q.getQ(state, action)
+                print("chosen action Q-Value: " + str(qValue) + "\n")
+                self.env.render()
+                time.sleep(0.25)
+
             # update environment and QFunction
             next_state, reward, terminal, _ = self.env.step(action)
             if training == True:
-                self.Q[state][action] = (1-self.alpha)*self.Q[state][action] + (self.alpha) * (reward + self.gamma * self.Q[next_state].max())
+                self.Q.updateQ(state, action, reward, next_state, self.alpha, self.gamma, self.env.action_space)
 
             state = next_state
             total_reward += reward
@@ -87,10 +155,12 @@ class QLearning:
         return total_reward
 
     def eGreedy(self, state):
-        return self.Q[state].argmax()
+        # find the max reward state
+        maxAction, _ = self.Q.getArgmax(state, self.env.action_space)
+        return maxAction
 
     
-    def test(self, numEpisodes=3000):
+    def test(self, numEpisodes=3000, viewDelay=2000):
         rewards = []
         legend = []
         averagedRewards = []
@@ -100,7 +170,12 @@ class QLearning:
         plt.ylabel("Reward")
 
         for i in range(numEpisodes):
-            self.runEpisode(100, True)
+            if i % viewDelay == 0:
+                print ("episode ", i)
+            
+            self.episodes = i
+            self.runEpisode(100, True, i%viewDelay==0)
+            #self.runEpisode(100, True, False)
             rewards.append(self.runEpisode(100, False))
 
         averages = range(numEpisodes-100)
@@ -127,7 +202,7 @@ class QLearning:
 def main():
     q = QLearning()
 
-    q.test(10000)
+    q.test(10000, 1)
     return
 
 if __name__ == '__main__':

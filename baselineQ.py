@@ -38,8 +38,6 @@ class QLearning:
         state = self.env.reset()
 
         for i in range(maxSteps):
-
-
             # perform alpha decay
             if training == True:
                 self.alpha = self.alpha / 1.00002
@@ -92,6 +90,7 @@ class QLearning:
 
             self.episodes = i
             self.runEpisode(100, True, i%viewDelay==0)
+            #self.runEpisode(100, True, False)
             rewards.append(self.runEpisode(100, False))
 
         averages = range(numEpisodes-100)
@@ -118,7 +117,7 @@ class QLearning:
 def main():
     q = QLearning()
 
-    q.test(30000, 2000)
+    q.test(10000, 1)
     return
 
 if __name__ == '__main__':

@@ -15,17 +15,66 @@ import params
 
 # experience replay class for storing samples and building minibatches
 class ExperienceBuffer():
-    def __init__(self, buffer_size = 50000):
+    def __init__(self, buffer_size = 30000):
         self.buffer = []
         self.buffer_size = buffer_size
+        self.current_size = 0
 
     def add(self, experience):
+        self.current_size = min(self.current_size + len(experience), self.buffer_size)
+        
         if len(self.buffer) + len(experience) >= self.buffer_size:
             self.buffer[0:(len(experience)+len(self.buffer))-self.buffer_size] = [] # clear earlier elements until we have enough to fit the new elements
         self.buffer.extend(experience)
 
+    # TODO review this and make sure it is correct
     def sample(self, size):
-        return np.reshape(np.array(random.sample(self.buffer, size)), [size,5])
+        # ensure there is enough history to sample
+        assert self.current_size > params.history_per_state
+
+        samples = []
+        numSamples = 0
+
+        for numSamples in range(size):
+            # get a random index
+            index = random.randint(params.history_per_state, self.current_size-1)
+
+            # get SARS from that index
+            SARS = self.buffer[index]
+
+            # get the history of the last few states
+            stateWithHistory = []
+            for i in range(params.history_per_state):
+                stateWithHistory.insert(0, self.buffer[index-i][0])
+
+            # get the resulting state with history
+            rStateWithHistory = []
+            for i in range(params.history_per_state):
+                rStateWithHistory.insert(0, self.buffer[index-i][3])
+
+            # convert state to np array and reshape
+            npStateWithHistory = np.array(stateWithHistory)
+            npStateWithHistory = npStateWithHistory.reshape(210, 160, -1)
+            npRStateWithHistory = np.array(rStateWithHistory)
+            npRStateWithHistory = npRStateWithHistory.reshape(210, 160, -1)
+
+            # repackage new SARS information into a new np array
+            sample = []
+            sample.append(npStateWithHistory)
+            sample.append(SARS[1])
+            sample.append(SARS[2])
+            sample.append(npRStateWithHistory)
+            sample.append(SARS[4])
+
+            npSample = np.array(sample)
+
+            # add sample to batch
+            samples.append(npSample)
+
+        # convert batch to np array and return
+        npSamples = np.array(samples)
+
+        return npSamples
 
 
 
@@ -48,8 +97,7 @@ class QNetwork:
         self.env = env
 
         # convolutional layers
-        # TODO might also need to add history to the state informaiton
-        self.imageInput = tf.placeholder(shape=[None, None, None, 3], dtype=tf.float32)
+        self.imageInput = tf.placeholder(shape=[None, None, None, params.history_per_state], dtype=tf.float32)
         self.processedImage = tf.image.resize_images(self.imageInput, [84, 84])
         print 'image input: ', self.imageInput
         print 'processed image: ', self.processedImage
@@ -100,6 +148,6 @@ class QNetwork:
 
         self.td_error = tf.square(self.targetQ - self.Q)
         self.loss = tf.reduce_mean(self.td_error)
-        self.trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
+        self.trainer = tf.train.AdamOptimizer(learning_rate=0.00025)
         self.updateModel = self.trainer.minimize(self.loss)
 

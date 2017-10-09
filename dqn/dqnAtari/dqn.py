@@ -25,7 +25,7 @@ class QLearning:
     def __init__(self):
         # environments
         #self.env = gym.make('VideoPinball-v0')
-        self.env = gym.make('Breakout-v0')
+        self.env = gym.make('Pong-v0')
 
         # q network
         self.Q = QValues(self.env)
@@ -41,7 +41,14 @@ class QLearning:
     def runEpisode(self, maxSteps=100, training=False, display=False):
         total_reward = 0
         state = self.env.reset()
+        grayState = self.Q.rgb2gray(state)
 
+        # set up state history
+        # frontload the environment with a history of standard states
+        stateWHistory = []
+        for i in range(params.history_per_state):
+            stateWHistory.append(grayState)
+        
         for i in range(maxSteps):
             # perform epsilon decay
             if params.total_steps > params.pre_train_steps and params.total_steps < params.pre_train_steps + params.annealing_steps:
@@ -55,26 +62,42 @@ class QLearning:
             if (random_num < params.epsilon or params.total_steps < params.pre_train_steps) and training == True:
                 action = self.env.action_space.sample()
             else:
-                action = self.eGreedy(state)
+                npStateWHistory = np.array(stateWHistory)
+                npStateWHistory = npStateWHistory.reshape(210, 160, -1)
+                action = self.eGreedy(npStateWHistory)
+
+
+            # update environment and QFunction
+            nextState, reward, terminal, _ = self.env.step(action)
+            grayNextState = self.Q.rgb2gray(nextState)
+
+
+            # update q values
+            if training == True:
+                self.Q.updateQ(grayState, action, reward, grayNextState, terminal)
+                params.total_steps += 1
 
             # display the environment
-            if display == True:
-                print(chr(27) + "[2J]")
+            if display == True and params.pre_train_override <= 0:
+                #print(chr(27) + "[2J]")
                 print("episodes: " + str(params.total_episodes) + "\n")
                 print "timesteps: ", params.total_steps
                 print("epsilon: " + str(params.epsilon) + "\n")
-                qValue = self.Q.getQ(state, action)
+                npStateWHistory = np.array(stateWHistory)
+                npStateWHistory = npStateWHistory.reshape(210, 160, -1)
+                qValue = self.Q.getQ(npStateWHistory, action)
+                print 'chosen action: ', action
                 print("chosen action Q-Value: " + str(qValue) + "\n")
                 self.env.render()
 
-            # update environment and QFunction
-            next_state, reward, terminal, _ = self.env.step(action)
+            # shift over state information
+            state = nextState
+            grayState = grayNextState
 
-            if training == True:
-                self.Q.updateQ(state, action, reward, next_state, terminal)
-                params.total_steps += 1
+            # update state history
+            stateWHistory.append(grayState)
+            stateWHistory.pop(0)
 
-            state = next_state
             total_reward += reward
 
             if terminal:
@@ -100,7 +123,6 @@ class QLearning:
         plt.ylabel("Reward")
 
         for i in range(params.num_episodes - params.total_episodes):
-
             reward = 0
             
             # train the model

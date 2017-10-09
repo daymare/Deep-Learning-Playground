@@ -50,9 +50,24 @@ class QValues:
         return npResult
 
 
+    def rgb2gray(self, rgb):
+        r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        return gray
+
+
+
     # update the network q values
     def updateQ(self, state, action, reward, rState, isTerminal):
         self.expBuffer.add(np.reshape(np.array([state, action, reward, rState, isTerminal]), [1,5]))
+
+        if params.pre_train_override > 0:
+            params.pre_train_override -= 1
+            return
+
+        if params.pre_train_override == 0:
+            print 'exiting pre-train override mode!'
+            params.pre_train_override -= 1
 
         if params.total_steps > params.pre_train_steps:
 
@@ -63,16 +78,35 @@ class QValues:
                 resultStateBatch = self.unpackStateBatch(trainBatch[:, 3])
 
                 mainQ = self.session.run(self.mainQN.predict, feed_dict={self.mainQN.imageInput:resultStateBatch})
+                mainQValue = self.session.run(self.mainQN.output, feed_dict={self.mainQN.imageInput:resultStateBatch})
                 targetQ = self.session.run(self.targetQN.output, feed_dict={self.targetQN.imageInput:resultStateBatch})
                 end_multiplier = -(trainBatch[:,4] - 1)
 
                 doubleQ = targetQ[range(params.batch_size), mainQ]
-                #newTargetQ = trainBatch[:,2] + (gamma * doubleQ * end_multiplier)
-                newTargetQ = trainBatch[:,2] + (params.gamma * doubleQ) # try removing end multiplier because it does not make sense to me
+                newTargetQ = trainBatch[:,2] + (params.gamma * doubleQ * end_multiplier)
+
 
                 _ = self.session.run(self.mainQN.updateModel, feed_dict={self.mainQN.imageInput:stateBatch, self.mainQN.targetQ:newTargetQ, self.mainQN.actions:trainBatch[:,1]})
-
                 updateTarget(self.targetOperations, self.session)
+
+                newnewmainQValue = self.session.run(self.mainQN.output, feed_dict={self.mainQN.imageInput:resultStateBatch})
+                newnewtargetQ = self.session.run(self.targetQN.output, feed_dict={self.targetQN.imageInput:resultStateBatch})
+
+                """
+                print 'main q: ', mainQ[0]
+                print 'main q value: ', mainQValue[0]
+                print 'target q: ', targetQ[0]
+
+                print 'double q: ', doubleQ[0]
+
+                print 'reward: ', trainBatch[:,2][0]
+
+                print 'newTargetQ: ', newTargetQ[0]
+
+                print 'result main q:', newnewmainQValue[0]
+                print 'result target q:', newnewtargetQ[0]
+                raw_input()
+                """
 
     # get the max value action in a given state
     def getArgmax(self, state, actionSpace):
@@ -95,6 +129,7 @@ class QValues:
 
         # save the network
         self.saver.save(self.session, params.path+'/model-' + str(params.total_steps) + '.cptk')
+
         print 'Saved Model'
         
 

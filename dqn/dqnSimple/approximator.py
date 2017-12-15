@@ -10,6 +10,7 @@ import tensorflow.contrib.slim as slim
 import matplotlib.pyplot as plt
 import scipy.misc
 import os
+import sys
 
 import params
 
@@ -56,19 +57,37 @@ class QNetwork:
         # convolutional layers
         self.scalarInput = tf.placeholder(shape=[None, 21168], dtype=tf.float32)
         self.imageInput = tf.reshape(self.scalarInput, shape=[-1, 84, 84, 3])
+        print 'image input: ', self.imageInput
 
         self.conv1 = slim.conv2d(inputs=self.imageInput, num_outputs=32, kernel_size=[8,8], stride=[4,4], padding='VALID', biases_initializer=None)
+        print 'conv1: ', self.conv1
+
         self.conv2 = slim.conv2d(inputs=self.conv1, num_outputs=64, kernel_size=[4,4], stride=[2,2], padding='VALID', biases_initializer=None)
+        print 'conv2: ', self.conv2
+
         self.conv3 = slim.conv2d(inputs=self.conv2, num_outputs=64, kernel_size=[3,3], stride=[1,1], padding='VALID', biases_initializer=None)
+        print 'conv3: ', self.conv3
+
         self.conv4 = slim.conv2d(inputs=self.conv3, num_outputs=h_size, kernel_size=[7,7], stride=[1,1], padding='VALID', biases_initializer=None)
+        print 'conv4: ', self.conv4
+
 
         # advantage and value layers
         self.streamAC, self.streamVC = tf.split(self.conv4, 2, 3)
+        print 'streamAC: ', self.streamAC
+        print 'streamVC: ', self.streamVC
+
         self.streamA = slim.flatten(self.streamAC)
+        print 'streamA: ', self.streamA
         self.streamV = slim.flatten(self.streamVC)
+        print 'streamV: ', self.streamV
         xavier_init = tf.contrib.layers.xavier_initializer()
         self.advantageWeights = tf.Variable(xavier_init([h_size//2, env.actions]))
+        print 'advantageWeights: ', self.advantageWeights
         self.valueWeights = tf.Variable(xavier_init([h_size//2, 1]))
+        print 'valueWeights: ', self.valueWeights
+
+
         self.Advantage = tf.matmul(self.streamA, self.advantageWeights)
         self.Value = tf.matmul(self.streamV, self.valueWeights)
 

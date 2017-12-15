@@ -25,7 +25,8 @@ class QLearning:
     def __init__(self):
         # environments
         #self.env = gym.make('VideoPinball-v0')
-        self.env = gym.make('Pong-v0')
+        self.env = gym.make('PongDeterministic-v4')
+        #self.env = gym.make('BreakoutDeterministic-v4')
 
         # q network
         self.Q = QValues(self.env)
@@ -69,8 +70,8 @@ class QLearning:
 
             # update environment and QFunction
             nextState, reward, terminal, _ = self.env.step(action)
-            grayNextState = self.Q.rgb2gray(nextState)
 
+            grayNextState = self.Q.rgb2gray(nextState)
 
             # update q values
             if training == True:
@@ -89,6 +90,7 @@ class QLearning:
                 print 'chosen action: ', action
                 print("chosen action Q-Value: " + str(qValue) + "\n")
                 self.env.render()
+                raw_input()
 
             # shift over state information
             state = nextState
@@ -118,9 +120,10 @@ class QLearning:
         legend = []
         averagedRewards = []
 
-        plt.title("QLearning")
-        plt.xlabel("Time Step")
-        plt.ylabel("Reward")
+        
+        #plt.title("QLearning")
+        #plt.xlabel("Time Step")
+        #plt.ylabel("Reward")
 
         for i in range(params.num_episodes - params.total_episodes):
             reward = 0

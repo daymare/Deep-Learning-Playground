@@ -56,7 +56,6 @@ class QValues:
         return gray
 
 
-
     # update the network q values
     def updateQ(self, state, action, reward, rState, isTerminal):
         self.expBuffer.add(np.reshape(np.array([state, action, reward, rState, isTerminal]), [1,5]))
@@ -78,10 +77,10 @@ class QValues:
                 resultStateBatch = self.unpackStateBatch(trainBatch[:, 3])
 
                 mainQ = self.session.run(self.mainQN.predict, feed_dict={self.mainQN.imageInput:resultStateBatch})
-                mainQValue = self.session.run(self.mainQN.output, feed_dict={self.mainQN.imageInput:resultStateBatch})
-                targetQ = self.session.run(self.targetQN.output, feed_dict={self.targetQN.imageInput:resultStateBatch})
-                end_multiplier = -(trainBatch[:,4] - 1)
+                #mainQValue = self.session.run(self.mainQN.output, feed_dict={self.mainQN.imageInput:resultStateBatch})
 
+                end_multiplier = -(trainBatch[:,4] - 1)
+                targetQ = self.session.run(self.targetQN.output, feed_dict={self.targetQN.imageInput:resultStateBatch})
                 doubleQ = targetQ[range(params.batch_size), mainQ]
                 newTargetQ = trainBatch[:,2] + (params.gamma * doubleQ * end_multiplier)
 
@@ -89,10 +88,11 @@ class QValues:
                 _ = self.session.run(self.mainQN.updateModel, feed_dict={self.mainQN.imageInput:stateBatch, self.mainQN.targetQ:newTargetQ, self.mainQN.actions:trainBatch[:,1]})
                 updateTarget(self.targetOperations, self.session)
 
+
+                """
                 newnewmainQValue = self.session.run(self.mainQN.output, feed_dict={self.mainQN.imageInput:resultStateBatch})
                 newnewtargetQ = self.session.run(self.targetQN.output, feed_dict={self.targetQN.imageInput:resultStateBatch})
 
-                """
                 print 'main q: ', mainQ[0]
                 print 'main q value: ', mainQValue[0]
                 print 'target q: ', targetQ[0]

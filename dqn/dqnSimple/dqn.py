@@ -18,10 +18,9 @@ from params import *
 from approximator import *
 
 # q learning with a deep neural network function approximator
-
+# modeled from https://github.com/awjuliani/DeepRL-Agents/blob/master/Double-Dueling-DQN.ipynb
 
 env = gameEnv(partial=False, size=5)
-
 
 
 tf.reset_default_graph()
@@ -102,13 +101,21 @@ with tf.Session() as sess:
                 if epsilon > endEpsilon:
                     epsilon -= stepDrop
 
+                # update the model
                 if total_steps % (update_freq) == 0:
                     trainBatch = myBuffer.sample(batch_size)
+
+                    print 'trainBatch: ', trainBatch.shape
+                    print 'trainBatch Vstack: ', np.vstack(trainBatch[:, 3]).shape
 
                     mainQ = sess.run(mainQN.predict, feed_dict={mainQN.scalarInput:np.vstack(trainBatch[:,3])})
                     targetQ = sess.run(targetQN.output, feed_dict={targetQN.scalarInput:np.vstack(trainBatch[:,3])})
 
+                    print 'mainQ: ', mainQ[0]
+                    print 'targetQ: ', targetQ[0]
+
                     end_multiplier = -(trainBatch[:,4] - 1)
+                    print 'end multiplier: ', end_multiplier
                     doubleQ = targetQ[range(batch_size), mainQ]
                     newTargetQ = trainBatch[:,2] + (gamma * doubleQ * end_multiplier)
 

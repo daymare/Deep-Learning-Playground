@@ -37,14 +37,7 @@ class ExperienceBuffer():
         if len(self.buffer) + len(t_experience) >= self.buffer_size:
             self.buffer[0:(len(t_experience)+len(self.buffer))-self.buffer_size] = [] # clear earlier elements until we have enough to fit the new elements
 
-        print(asizeof(self.buffer))
-        self.buffer.extend(t_experience)
-        print(asizeof(t_experience))
-        print(asizeof(experience))
-        print(asizeof(self.buffer))
-        raw_input()
 
-    # TODO review this and make sure it is correct
     def sample(self, size):
         # ensure there is enough history to sample
         assert self.current_size > params.history_per_state

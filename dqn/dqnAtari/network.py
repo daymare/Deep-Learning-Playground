@@ -6,6 +6,7 @@ import random
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+import keras
 
 import sys
 import copy
@@ -36,6 +37,8 @@ class ExperienceBuffer():
         
         if len(self.buffer) + len(t_experience) >= self.buffer_size:
             self.buffer[0:(len(t_experience)+len(self.buffer))-self.buffer_size] = [] # clear earlier elements until we have enough to fit the new elements
+
+        self.buffer.extend(t_experience)
 
 
     def sample(self, size):

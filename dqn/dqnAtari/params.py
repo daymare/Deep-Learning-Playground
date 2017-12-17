@@ -85,9 +85,9 @@ print_delay = 1
 
 load_model = False # whether to load a saved model
 load_parameters = False # whether to load saved learning parameters
-save_delay = 500 # how many episodes to wait between saves for the model
+save_delay = 2000 # how many episodes to wait between saves for the model
 path = "./save" # path to save our model to
-paramPath = "./onlineParameters" # path to save our online parameters to
+paramPath = "./save/onlineParameters" # path to save our online parameters to
 
 h_size = 512
 tau = 0.0001 # rate to update target network towards primary network

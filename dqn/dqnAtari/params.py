@@ -65,6 +65,9 @@ def loadOnlineParameters():
 batch_size = 32 # how many experiences to use for each minibatch
 update_freq = 4 # how often to perform a minibatch in our training
 gamma = 1 # discount on future reward
+learning_rate = 0.00025
+momentum = 0.95
+
 
 history_per_state = 4
 
@@ -91,6 +94,7 @@ paramPath = "./save/onlineParameters" # path to save our online parameters to
 
 h_size = 512
 tau = 0.0001 # rate to update target network towards primary network
+
 
 # online parameters
 total_steps = 0

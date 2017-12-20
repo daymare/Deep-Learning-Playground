@@ -67,6 +67,10 @@ update_freq = 4 # how often to perform a minibatch in our training
 gamma = 1 # discount on future reward
 learning_rate = 0.00025
 momentum = 0.95
+minimum_gradiant = 0.01
+
+image_width = 84
+image_height = 84
 
 
 history_per_state = 4

@@ -78,24 +78,33 @@ minimum_gradiant = 0.01
 image_width = 84
 image_height = 84
 
-
+# network parameters
+h_size = 512
+tau = 0.00025 # rate to update target network towards primary network
 history_per_state = 4
 
+
+# agent behavior parameters
 startEpsilon = 1
 endEpsilon = 0.1
+gamma = 0.99 # discount on future reward
 annealing_steps = 1000000. # how many steps of training to reduce epsilon over
 epsilonStepDrop = (startEpsilon - endEpsilon) / annealing_steps
 pre_train_steps = 50000 # how many steps of random actions to take before training begins
-pre_train_steps = 500000000 # how many steps of random actions to take before training begins
 pre_train_override = 500
 
+# max number of episodes
 max_episode_length = 10000
 num_episodes = 100000
 
-view_toggle = False
+
+# view parameters
+view_toggle = True
 episode_view_delay = 1
 print_delay = 1
 
+
+# save and load parameters
 load_model = False # whether to load a saved model
 load_parameters = False # whether to load saved learning parameters
 save_delay = 2000 # how many episodes to wait between saves for the model
@@ -103,8 +112,6 @@ savePath = "./save" # path to save our model to
 paramPath = "./save/onlineParameters" # path to save our online parameters to
 summaryPath = "./summary/"
 
-h_size = 512
-tau = 0.0001 # rate to update target network towards primary network
 
 
 # online parameters

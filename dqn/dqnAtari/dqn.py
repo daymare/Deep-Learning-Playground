@@ -24,8 +24,8 @@ import params
 class QLearning:
     def __init__(self):
         # environments
-        #self.env = gym.make('VideoPinball-v0')
-        self.env = gym.make('PongDeterministic-v4')
+        self.env = gym.make('VideoPinballNoFrameskip-v4')
+        #self.env = gym.make('PongNoFrameskip-v4')#
         #self.env = gym.make('BreakoutDeterministic-v4')
 
         # q network
@@ -119,7 +119,6 @@ class QLearning:
     def test(self, viewDelay=2000, display=False):
         legend = []
         averagedRewards = []
-
         
         #plt.title("QLearning")
         #plt.xlabel("Time Step")

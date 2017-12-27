@@ -23,6 +23,12 @@ def saveOnlineParameters():
     print 'total episodes: ', total_episodes
     print 'epsilon: ', epsilon
     print 'rewards: ', rewards
+
+    # ensure the directory exists
+    if not os.path.exists(savePath):
+        os.makedirs(savePath)
+    if not os.path.exists(paramPath):
+        os.makedirs(paramPath)
     
     # open pickle file for write
     f = open(paramPath, 'w')
@@ -93,8 +99,9 @@ print_delay = 1
 load_model = False # whether to load a saved model
 load_parameters = False # whether to load saved learning parameters
 save_delay = 2000 # how many episodes to wait between saves for the model
-path = "./save" # path to save our model to
+savePath = "./save" # path to save our model to
 paramPath = "./save/onlineParameters" # path to save our online parameters to
+summaryPath = "./summary/"
 
 h_size = 512
 tau = 0.0001 # rate to update target network towards primary network

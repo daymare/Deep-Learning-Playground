@@ -16,28 +16,26 @@ class QValues:
     def __init__(self, env):
         tf.reset_default_graph()
 
-        ### variables
-        # network approximators
-        self.mainQN = QNetwork(params.h_size, env)
-        self.targetQN = QNetwork(params.h_size, env)
-
-        # utility 
-        self.init = tf.global_variables_initializer()
-        self.saver = tf.train.Saver()
-        self.session = tf.Session()
-
-        # target operations
-        self.trainables = tf.trainable_variables()
-        self.targetOperations = updateTargetGraph(self.trainables, params.tau)
-
         # experience buffer
-        self.expBuffer = ExperienceBuffer() # mmmmm exp
+        self.expBuffer = ExperienceBuffer()
 
-        ### setup for training
-        # initialize the session
-        self.session.run(self.init)
-        # set the target network to be equal to the primary network
-        updateTarget(self.targetOperations, self.session)
+        # network approximators
+        self.mainNetwork = QNetwork(params.h_size, env)
+        self.targetNetwork = QNetwork(params.h_size, env)
+
+        # define target network update
+        target_weights = self.targetNetwork.model.trainable_weights
+        self.update_target_network = [target_weights[i].assign(q_network_weights[i]) for i in range(len(target_wegiths))]
+
+        # define loss and gradient update operation
+        self.a, self.y, self.loss, self.gradient_update = self.mainNetwork.build_training_ops()
+
+        # create session, saver, and summary placeholders
+        main_weights = self.mainNetwork.model.trainable_weights
+        self.sess = tf.InteractiveSession()
+        self.saver = tf.train.Saver(main_weigts)
+        self.summary_placeholders, self.update_operations, self.summary_operation = self.setup_summary()
+        self.summary_writer = tf.train.SummaryWriter(params.summaryPath, self.sess.graph)
 
     def unpackStateBatch(self, stateArray):
         listResult = []
@@ -49,7 +47,6 @@ class QValues:
 
         return npResult
 
-
     def rgb2gray(self, rgb):
         r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
         gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
@@ -57,6 +54,7 @@ class QValues:
 
 
     # update the network q values
+    # TODO update
     def updateQ(self, state, action, reward, rState, isTerminal):
         self.expBuffer.add(np.reshape(np.array([state, action, reward, rState, isTerminal]), [1,5]))
 
@@ -69,7 +67,6 @@ class QValues:
             params.pre_train_override -= 1
 
         if params.total_steps > params.pre_train_steps:
-
             if params.total_steps % (params.update_freq) == 0:
                 trainBatch = self.expBuffer.sample(params.batch_size)
 
@@ -90,6 +87,7 @@ class QValues:
 
 
                 """
+                debug printouts
                 newnewmainQValue = self.session.run(self.mainQN.output, feed_dict={self.mainQN.imageInput:resultStateBatch})
                 newnewtargetQ = self.session.run(self.targetQN.output, feed_dict={self.targetQN.imageInput:resultStateBatch})
 
@@ -124,19 +122,15 @@ class QValues:
     # save the model into the default path 
     def saveQ(self):
         # ensure we have a path to save to
-        if not os.path.exists(params.path):
-            os.makedirs(params.path)
+        if not os.path.exists(params.savePath):
+            os.makedirs(params.savePath)
 
         # save the network
-        self.saver.save(self.session, params.path+'/model-' + str(params.total_steps) + '.cptk')
-
+        self.saver.save(self.session, params.savePath+'/model-' + str(params.total_steps) + '.cptk')
         print 'Saved Model'
         
 
     # load the most recent model saved to the default path
     def loadQ(self):
         print 'Loading Model...'
-        chkpt = tf.train.get_checkpoint_state(params.path)
-        self.saver.restore(self.session, chkpt.model_checkpoint_path)
-
-
+        chkpt = tf.train.get_checkpoint_state(params.savePath) self.saver.restore(self.session, chkpt.model_checkpoint_path) 
